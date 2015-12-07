@@ -1,0 +1,506 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Cloudformation 0.0.1 prod-nginx",
+  "Mappings": {
+    "AWSInstanceType2Arch": {
+      "t2.micro": {
+        "Arch": "64"
+      },
+      "t2.small": {
+        "Arch": "64"
+      },
+      "t2.medium": {
+        "Arch": "64"
+      },
+      "m3.medium": {
+        "Arch": "64"
+      },
+      "r3.xlarge": {
+        "Arch": "64"
+      },
+      "m3.xlarge": {
+        "Arch": "64"
+      },
+      "m3.large": {
+        "Arch": "64"
+      },
+      "c4.large": {
+        "Arch": "64"
+      },
+      "c4.xlarge": {
+        "Arch": "64"
+      },
+      "c4.4xlarge": {
+        "Arch": "64"
+      },
+      "c4.2xlarge": {
+        "Arch": "64"
+      },
+      "c3.xlarge": {
+        "Arch": "64"
+      }
+    },
+    "AWSRegionArch2AMI": {
+      "eu-west-1": {
+        "64": "ami-09c8337e"
+      },
+      "eu-central-1": {
+        "64": "ami-xxxxx"
+      }
+    }
+  },
+  "Resources": {
+    "prodnginx1": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "Comment1": "prod-nginx",
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "files": {
+              "/etc/cfn/cfn-hup.conf": {
+                "content": {
+                  "Fn::Base64": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "[main]\n",
+                        "stack=",
+                        {
+                          "Ref": "AWS::StackId"
+                        },
+                        " \n",
+                        "region=",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        " \n"
+                      ]
+                    ]
+                  }
+                },
+                "mode": "000400",
+                "owner": "root",
+                "group": "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+                "content": {
+                  "Fn::Base64": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "[cfn-auto-reloader-hook]\n",
+                        "triggers=post.update\n",
+                        "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                        "action=/opt/aws/bin/cfn-init -v \n",
+                        " --stack  ",
+                        {
+                          "Ref": "AWS::StackName"
+                        },
+                        " \n",
+                        " --resource prodnginx1\n",
+                        " --region  ",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        "  \n",
+                        "runas=root\n"
+                      ]
+                    ]
+                  }
+                },
+                "services": {
+                  "sysvinit": {
+                    "cfn-hup": {
+                      "enabled": "true",
+                      "ensureRunning": "true",
+                      "files": [
+                        "/etc/cfn/cfn-hup.conf",
+                        "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "InstanceType": "t2.micro",
+        "KeyName": "jan-test",
+        "IamInstanceProfile": "ec2_default",
+        "SourceDestCheck": "false",
+        "ImageId": "ami-09c8337e",
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "30",
+              "VolumeType": "gp2",
+              "DeleteOnTermination": "true"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "prod-nginx1"
+          },
+          {
+            "Key": "environment",
+            "Value": "production"
+          },
+          {
+            "Key": "role",
+            "Value": "prod-nginx"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "curl -s https://raw.githubusercontent.com/jszalkowski/which/master/bootstrap/install.sh |bash \n",
+                "/opt/aws/bin/cfn-init -v --stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource prodnginx1 --region  ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "echo \"signal!\"\n",
+                "/opt/aws/bin/cfn-signal -e 0 --stack  ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource prodnginx1 --region  ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "prodnginxSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Security group for prod-nginx",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "10.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "prodweb1": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "Comment1": "prod-nginx",
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "files": {
+              "/etc/cfn/cfn-hup.conf": {
+                "content": {
+                  "Fn::Base64": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "[main]\n",
+                        "stack=",
+                        {
+                          "Ref": "AWS::StackId"
+                        },
+                        " \n",
+                        "region=",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        " \n"
+                      ]
+                    ]
+                  }
+                },
+                "mode": "000400",
+                "owner": "root",
+                "group": "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+                "content": {
+                  "Fn::Base64": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "[cfn-auto-reloader-hook]\n",
+                        "triggers=post.update\n",
+                        "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                        "action=/opt/aws/bin/cfn-init -v \n",
+                        " --stack  ",
+                        {
+                          "Ref": "AWS::StackName"
+                        },
+                        " \n",
+                        " --resource prodweb1\n",
+                        " --region  ",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        "  \n",
+                        "runas=root\n"
+                      ]
+                    ]
+                  }
+                },
+                "services": {
+                  "sysvinit": {
+                    "cfn-hup": {
+                      "enabled": "true",
+                      "ensureRunning": "true",
+                      "files": [
+                        "/etc/cfn/cfn-hup.conf",
+                        "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "InstanceType": "t2.micro",
+        "KeyName": "jan-test",
+        "IamInstanceProfile": "ec2_default",
+        "SourceDestCheck": "false",
+        "ImageId": "ami-09c8337e",
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "30",
+              "VolumeType": "gp2",
+              "DeleteOnTermination": "true"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "prod-web1"
+          },
+          {
+            "Key": "environment",
+            "Value": "production"
+          },
+          {
+            "Key": "role",
+            "Value": "prod-web"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "curl -s https://raw.githubusercontent.com/jszalkowski/which/master/bootstrap/install.sh |bash \n",
+                "/opt/aws/bin/cfn-init -v --stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource prodweb1 --region  ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "echo \"signal!\"\n",
+                "/opt/aws/bin/cfn-signal -e 0 --stack  ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource prodweb1 --region  ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "prodweb2": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "Comment1": "prod-nginx",
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "files": {
+              "/etc/cfn/cfn-hup.conf": {
+                "content": {
+                  "Fn::Base64": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "[main]\n",
+                        "stack=",
+                        {
+                          "Ref": "AWS::StackId"
+                        },
+                        " \n",
+                        "region=",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        " \n"
+                      ]
+                    ]
+                  }
+                },
+                "mode": "000400",
+                "owner": "root",
+                "group": "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+                "content": {
+                  "Fn::Base64": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "[cfn-auto-reloader-hook]\n",
+                        "triggers=post.update\n",
+                        "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                        "action=/opt/aws/bin/cfn-init -v \n",
+                        " --stack  ",
+                        {
+                          "Ref": "AWS::StackName"
+                        },
+                        " \n",
+                        " --resource prodweb2\n",
+                        " --region  ",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        "  \n",
+                        "runas=root\n"
+                      ]
+                    ]
+                  }
+                },
+                "services": {
+                  "sysvinit": {
+                    "cfn-hup": {
+                      "enabled": "true",
+                      "ensureRunning": "true",
+                      "files": [
+                        "/etc/cfn/cfn-hup.conf",
+                        "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "InstanceType": "t2.micro",
+        "KeyName": "jan-test",
+        "IamInstanceProfile": "ec2_default",
+        "SourceDestCheck": "false",
+        "ImageId": "ami-09c8337e",
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "30",
+              "VolumeType": "gp2",
+              "DeleteOnTermination": "true"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "prod-web1"
+          },
+          {
+            "Key": "environment",
+            "Value": "production"
+          },
+          {
+            "Key": "role",
+            "Value": "prod-web"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "curl -s https://raw.githubusercontent.com/jszalkowski/which/master/bootstrap/install.sh |bash \n",
+                "/opt/aws/bin/cfn-init -v --stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource prodweb2 --region  ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "echo \"signal!\"\n",
+                "/opt/aws/bin/cfn-signal -e 0 --stack  ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource prodweb2 --region  ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "prodwebSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Security group",
+        "VpcId": "",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "8484",
+            "ToPort": "8484",
+            "CidrIp": "10.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "10.0.0.0/0"
+          }
+        ]
+      }
+    }
+  }
+}
