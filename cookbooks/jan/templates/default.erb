@@ -1,0 +1,15 @@
+server {
+  listen 80 default_server;
+  server_name _;
+
+
+  location / {
+    proxy_pass http://app;
+  }
+
+}
+
+upstream app {
+    server prod-web1:8484;
+    server prod-web2:8484;
+}
